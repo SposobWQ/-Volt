@@ -42,14 +42,14 @@ async def main():
         if 'bot' in locals():
             await bot.close()
 
-if __name__ == "__main__":
+def run_bot():
+    """Функция для запуска бота (нужна для хостинга)"""
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.success("Бот завершил работу", "👋")
     except Exception as e:
         logger.error(f"Неожиданная ошибка: {e}")
-    
-    if os.name == 'nt' and 'pythonw' not in sys.executable:
-        print("\n⚠️  Нажмите Enter для выхода...")
-        input()
+
+if __name__ == "__main__":
+    run_bot()
