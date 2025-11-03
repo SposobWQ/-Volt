@@ -1,7 +1,3 @@
-# FFmpeg
-ffmpeg/
-ffmpeg.exe
-
 # Логи
 logs/
 *.log
@@ -13,6 +9,7 @@ __pycache__/
 *.pyd
 .Python
 env/
+env1/
 venv/
 .venv/
 
