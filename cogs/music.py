@@ -52,24 +52,33 @@ class MusicCog(commands.Cog):
         logger.music("Музыкальный модуль с YouTube инициализирован")
         
         self.ydl_opts = {
-           'format': 'bestaudio/best',
-           'noplaylist': True,
-           'nocheckcertificate': True,
-           'ignoreerrors': True,
-           'no_warnings': True,
-           'quiet': True,
-           'default_search': 'ytsearch',
-           'extractaudio': True,
-           'audioformat': 'mp3',
-           'socket_timeout': 30,
-           'retries': 3,
-           'age_limit': 0,
-    # Добавьте эти опции для обхода ограничений
-           'extract_flat': False,
-           'force_ipv4': True,
-           'geo_bypass': True,
-           'geo_bypass_country': 'FR',
-}
+            'format': 'bestaudio/best',
+            'noplaylist': True,
+            'nocheckcertificate': True,
+            'ignoreerrors': True,
+            'no_warnings': True,
+            'quiet': True,
+            'default_search': 'ytsearch',
+            'extractaudio': True,
+            'audioformat': 'mp3',
+            'socket_timeout': 30,
+            'retries': 3,
+    
+            # КРИТИЧЕСКИ ВАЖНЫЕ НАСТРОЙКИ для обхода блокировки:
+            'extract_flat': False,
+            'force_ipv4': True,
+            'geo_bypass': True,
+            'geo_bypass_country': 'US',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    
+            # Добавьте эти headers для обхода защиты
+            'http_headers': {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Sec-Fetch-Mode': 'navigate',
+                'Accept-Encoding': 'gzip,deflate',
+            },
+        }
     
     def format_time(self, seconds):
         """Форматирует время в читаемый формат"""
