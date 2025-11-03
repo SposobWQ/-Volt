@@ -48,6 +48,7 @@
     <Compile Include="utils\helpers.py" />
     <Compile Include="utils\music_classes.py" />
     <Compile Include="utils\__init__.py" />
+    <Compile Include="youtube_fix.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="cogs\" />

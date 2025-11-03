@@ -3,6 +3,7 @@ import sys
 import asyncio
 from dotenv import load_dotenv
 import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Добавляем пути для импортов
 sys.path.append(os.path.join(os.path.dirname(__file__), 'core'))
@@ -15,38 +16,38 @@ from core.logger import logger
 # Загрузка переменных окружения
 load_dotenv()
 
-def start_simple_server():
-    """Запускает простой TCP сервер в отдельном потоке"""
-    import socket
-    import time
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health' or self.path == '/':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b'Bot is running!')
+        else:
+            self.send_response(404)
+            self.end_headers()
     
-    def server_thread():
-        while True:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                sock.bind(('0.0.0.0', 10000))
-                sock.listen(1)
-                logger.success("TCP сервер запущен на порту 10000", "🌐")
-                
-                while True:
-                    conn, addr = sock.accept()
-                    conn.send(b"Bot is running!")
-                    conn.close()
-                    
-            except Exception as e:
-                logger.warning(f"Ошибка TCP сервера: {e}")
-                time.sleep(5)
+    def log_message(self, format, *args):
+        # Отключаем логи HTTP запросов
+        return
+
+def start_http_server():
+    """Запускает HTTP сервер в отдельном потоке"""
+    def run_server():
+        port = int(os.environ.get('PORT', 10000))
+        server = HTTPServer(('0.0.0.0', port), HealthHandler)
+        logger.success(f"HTTP сервер запущен на порту {port}", "🌐")
+        server.serve_forever()
     
-    thread = threading.Thread(target=server_thread, daemon=True)
+    thread = threading.Thread(target=run_server, daemon=True)
     thread.start()
 
 async def main():
     logger.success("Запуск Discord Music Bot...", "🎵")
     logger.info("=" * 50)
     
-    # Запускаем TCP сервер
-    start_simple_server()
+    # Запускаем HTTP сервер
+    start_http_server()
     
     try:
         token = os.getenv('DISCORD_BOT_TOKEN')

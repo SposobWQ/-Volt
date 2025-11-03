@@ -54,30 +54,22 @@ class MusicCog(commands.Cog):
         self.ydl_opts = {
             'format': 'bestaudio/best',
             'noplaylist': True,
-            'nocheckcertificate': True,
             'ignoreerrors': True,
             'no_warnings': True,
             'quiet': True,
-            'default_search': 'ytsearch',
-            'extractaudio': True,
-            'audioformat': 'mp3',
             'socket_timeout': 30,
-            'retries': 3,
-    
-            # КРИТИЧЕСКИ ВАЖНЫЕ НАСТРОЙКИ для обхода блокировки:
+            'retries': 5,
             'extract_flat': False,
             'force_ipv4': True,
             'geo_bypass': True,
             'geo_bypass_country': 'US',
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    
-            # Добавьте эти headers для обхода защиты
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'http_headers': {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-us,en;q=0.5',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
                 'Sec-Fetch-Mode': 'navigate',
-                'Accept-Encoding': 'gzip,deflate',
-            },
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
         }
     
     def format_time(self, seconds):
