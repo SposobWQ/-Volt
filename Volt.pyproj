@@ -58,6 +58,7 @@
   <ItemGroup>
     <Content Include="data\music_bot.db" />
     <Content Include="requirments.txt" />
+    <Content Include="runtime.txt" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="env1\">
