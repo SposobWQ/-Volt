@@ -8,6 +8,7 @@ import re
 import os
 import random
 import time
+from core.config import Config
 
 class SimpleMusicPlayer:
     def __init__(self):
@@ -558,16 +559,33 @@ class MusicCog(commands.Cog):
             if not voice_client or not voice_client.is_connected():
                 logger.warning("Голосовое соединение разорвано")
                 return
-                
+            
+            # Используем абсолютный путь к ffmpeg если найден
+            ffmpeg_executable = None
+            if hasattr(self.bot, 'ffmpeg_path') and self.bot.ffmpeg_path:
+                ffmpeg_executable = self.bot.ffmpeg_path
+            elif hasattr(Config, 'FFMPEG_PATH') and Config.FFMPEG_PATH:
+                ffmpeg_executable = Config.FFMPEG_PATH
+            
             ffmpeg_options = {
                 'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostdin',
                 'options': '-vn -af "volume=0.8"'
             }
             
-            source = discord.FFmpegPCMAudio(
-                track['url'],
-                **ffmpeg_options
-            )
+            # Создаем аудио источник с указанием пути к ffmpeg если нужно
+            if ffmpeg_executable and os.path.exists(ffmpeg_executable):
+                source = discord.FFmpegPCMAudio(
+                    track['url'],
+                    executable=ffmpeg_executable,
+                    **ffmpeg_options
+                )
+                logger.debug(f"Используем FFmpeg: {ffmpeg_executable}")
+            else:
+                source = discord.FFmpegPCMAudio(
+                    track['url'],
+                    **ffmpeg_options
+                )
+                logger.debug("Используем системный FFmpeg")
             
             def after_play(error):
                 if error:

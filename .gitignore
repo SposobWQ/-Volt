@@ -1,3 +1,32 @@
+# FFmpeg
+ffmpeg/
+ffmpeg.exe
+
+# Логи
+logs/
+*.log
+
+# Кеш Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Временные файлы
+*.tmp
+*.temp
+.cache/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

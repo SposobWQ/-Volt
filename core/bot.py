@@ -32,6 +32,9 @@ class PerfectMusicBot(commands.Bot):
         self.permissions = PermissionSystem(self.db)
         self.players = {}
         
+        # Путь к ffmpeg
+        self.ffmpeg_path = self._find_ffmpeg()
+        
         # Безопасные настройки yt-dlp
         self.ytdl_opts = {
             'format': 'bestaudio/best',
@@ -47,6 +50,36 @@ class PerfectMusicBot(commands.Bot):
         self.ytdl = youtube_dlp.YoutubeDL(self.ytdl_opts)
         self.vote_skips = {}
         
+    def _find_ffmpeg(self):
+        """Ищет ffmpeg в папке проекта"""
+        possible_paths = [
+            os.path.join(os.path.dirname(__file__), '..', 'ffmpeg', 'bin', 'ffmpeg.exe'),
+            os.path.join(os.path.dirname(__file__), '..', 'ffmpeg', 'bin', 'ffmpeg'),
+            os.path.join(os.path.dirname(__file__), '..', 'ffmpeg', 'ffmpeg.exe'),
+            os.path.join(os.path.dirname(__file__), '..', 'ffmpeg', 'ffmpeg'),
+            'ffmpeg',  # Системный ffmpeg
+            'ffmpeg.exe',  # Системный ffmpeg (Windows)
+        ]
+        
+        for path in possible_paths:
+            abs_path = os.path.abspath(path) if not path.startswith('ffmpeg') else path
+            if not path.startswith('ffmpeg'):
+                if os.path.exists(abs_path):
+                    logger.success(f"FFmpeg найден: {abs_path}", "🔊")
+                    return abs_path
+            else:
+                # Проверяем системный ffmpeg
+                try:
+                    result = os.system(f"{path} -version >nul 2>&1")
+                    if result == 0:
+                        logger.success(f"Используется системный FFmpeg: {path}", "🔊")
+                        return path
+                except:
+                    continue
+        
+        logger.warning("FFmpeg не найден в папке проекта и системе", "⚠️")
+        return None
+        
     async def setup_hook(self):
         """Вызывается при инициализации бота"""
         self.start_time = asyncio.get_event_loop().time()
@@ -57,7 +90,7 @@ class PerfectMusicBot(commands.Bot):
             'cogs.music',
             'cogs.events',
             'cogs.admin',
-            'cogs.voice_manager',  # ← ЗАПЯТАЯ ДОБАВЛЕНА
+            'cogs.voice_manager',
             'cogs.sync',
             'cogs.playlists'
         ]
