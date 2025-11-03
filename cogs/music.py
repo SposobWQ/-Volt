@@ -6,6 +6,8 @@ import yt_dlp as youtube_dl
 from core.logger import logger
 import re
 import os
+import random
+import time
 
 class SimpleMusicPlayer:
     def __init__(self):
@@ -49,27 +51,33 @@ class MusicCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.search_cache = {}
+        self.last_request_time = 0
         logger.music("Музыкальный модуль с YouTube инициализирован")
         
+        # АГРЕССИВНЫЕ настройки для обхода блокировки Render
         self.ydl_opts = {
             'format': 'bestaudio/best',
             'noplaylist': True,
             'ignoreerrors': True,
             'no_warnings': True,
             'quiet': True,
-            'socket_timeout': 30,
-            'retries': 5,
+            'socket_timeout': 45,
+            'retries': 10,
             'extract_flat': False,
             'force_ipv4': True,
             'geo_bypass': True,
-            'geo_bypass_country': 'US',
+            'geo_bypass_country': random.choice(['US', 'DE', 'FR', 'CA', 'GB']),
+            
+            # КРИТИЧЕСКИ ВАЖНЫЕ НАСТРОЙКИ
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'http_headers': {
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Sec-Fetch-Mode': 'navigate',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            }
+            'referer': 'https://www.youtube.com/',
+            'no_check_certificate': True,
+            'prefer_insecure': True,
+            
+            # Дополнительные опции
+            'throttledratelimit': 512,
+            'nopart': True,
+            'skip_download': True,
         }
     
     def format_time(self, seconds):
@@ -85,28 +93,63 @@ class MusicCog(commands.Cog):
             return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         return f"{minutes:02d}:{seconds:02d}"
     
-    def detect_platform(self, query):
-        """Автоматически определяет платформу по запросу"""
-        if query.startswith('https://'):
-            if 'youtube.com' in query or 'youtu.be' in query:
-                return 'youtube'
-        return 'youtube'
+    async def safe_request(self, func, *args, **kwargs):
+        """Безопасный запрос с задержками и повторными попытками"""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        
+        # Минимальная задержка 3 секунды между запросами
+        if time_since_last < 3:
+            await asyncio.sleep(3 - time_since_last)
+        
+        for attempt in range(5):
+            try:
+                self.last_request_time = time.time()
+                result = await func(*args, **kwargs)
+                if result:
+                    return result
+                
+                # Если результат пустой, ждем и пробуем снова
+                await asyncio.sleep(2)
+                
+            except Exception as e:
+                error_str = str(e).lower()
+                if "bot" in error_str or "sign in" in error_str:
+                    logger.warning(f"Блокировка YouTube (попытка {attempt+1})")
+                    # Случайная задержка 5-10 секунд при блокировке
+                    await asyncio.sleep(random.uniform(5, 10))
+                    
+                    # Меняем настройки для следующей попытки
+                    self.ydl_opts['geo_bypass_country'] = random.choice(['US', 'DE', 'FR', 'CA', 'GB'])
+                    self.ydl_opts['user_agent'] = random.choice([
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+                        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    ])
+                    
+                    continue
+                else:
+                    logger.error(f"Ошибка запроса (попытка {attempt+1}): {e}")
+                    await asyncio.sleep(2)
+        
+        return None
     
     async def search_tracks(self, query, limit=10):
-        """Поиск треков на YouTube"""
+        """Поиск треков на YouTube с защитой от блокировки"""
         try:
             logger.debug(f"Поиск на YouTube: '{query}'")
             
-            with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
-                search_query = f"ytsearch{limit}:{query}"
-                logger.debug(f"Поисковый запрос: {search_query}")
-                
-                data = await self.bot.loop.run_in_executor(
-                    None, lambda: ydl.extract_info(search_query, download=False)
-                )
+            def search_func():
+                with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
+                    search_query = f"ytsearch{limit}:{query}"
+                    return ydl.extract_info(search_query, download=False)
+            
+            data = await self.safe_request(
+                self.bot.loop.run_in_executor, None, search_func
+            )
             
             if not data:
-                logger.warning(f"Нет данных от yt-dlp для запроса: {search_query}")
+                logger.warning(f"Нет данных от yt-dlp для запроса: {query}")
                 return []
             
             tracks = []
@@ -162,10 +205,13 @@ class MusicCog(commands.Cog):
         try:
             logger.debug(f"Получение трека с YouTube: {url[:50]}...")
             
-            with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
-                data = await self.bot.loop.run_in_executor(
-                    None, lambda: ydl.extract_info(url, download=False)
-                )
+            def get_track_func():
+                with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
+                    return ydl.extract_info(url, download=False)
+            
+            data = await self.safe_request(
+                self.bot.loop.run_in_executor, None, get_track_func
+            )
             
             if not data:
                 raise Exception("Не удалось загрузить трек")
@@ -179,9 +225,9 @@ class MusicCog(commands.Cog):
             
         except Exception as e:
             error_msg = str(e)
-            if "Sign in to confirm your age" in error_msg:
-                logger.warning(f"Возрастное ограничение для трека: {url}")
-                raise Exception("❌ Этот трек имеет возрастные ограничения и не может быть воспроизведен")
+            if "bot" in error_msg.lower() or "sign in" in error_msg.lower():
+                logger.warning(f"Блокировка YouTube для трека: {url}")
+                raise Exception("❌ YouTube временно блокирует запросы. Попробуйте через несколько минут.")
             else:
                 logger.error(f"Ошибка загрузки трека с YouTube '{url}': {e}")
                 raise Exception(f"Не удалось загрузить трек: {str(e)[:100]}")
@@ -247,15 +293,18 @@ class MusicCog(commands.Cog):
             return await interaction.followup.send("❌ Подключись к голосовому каналу!")
         
         try:
+            # Быстрый ответ что поиск начался
+            await interaction.followup.send("🔍 Ищу музыку... Это может занять до 15 секунд", ephemeral=True)
+            
             tracks = await self.search_tracks(query, limit=10)
             
             if not tracks:
                 return await interaction.followup.send(
                     f"❌ Не найдено треков по запросу **'{query}'**\n\n"
-                    f"💡 **Попробуй:**\n"
-                    f"• Изменить запрос\n"
-                    f"• Использовать более точное название\n"
-                    f"• Проверить написание"
+                    f"💡 **Возможные причины:**\n"
+                    f"• YouTube временно блокирует запросы\n"
+                    f"• Попробуйте другой запрос\n"
+                    f"• Подождите 5-10 минут"
                 )
             
             embed = discord.Embed(
@@ -281,10 +330,8 @@ class MusicCog(commands.Cog):
             logger.error(f"Ошибка поиска с выбором: {e}")
             await interaction.followup.send(
                 f"❌ Ошибка при поиске\n"
-                f"**Попробуй:**\n"
-                f"• Проверить интернет-соединение\n"
-                f"• Попробовать позже\n"
-                f"• Использовать другой запрос"
+                f"**YouTube временно блокирует запросы**\n"
+                f"Попробуйте через 5-10 минут"
             )
     
     @app_commands.command(name="pause", description="Приостановить воспроизведение")
@@ -462,8 +509,8 @@ class MusicCog(commands.Cog):
         except Exception as e:
             logger.error(f"Ошибка воспроизведения выбранного трека: {e}")
             error_msg = str(e)
-            if "возрастные ограничения" in error_msg.lower():
-                await interaction.followup.send("❌ Этот трек имеет возрастные ограничения и не может быть воспроизведен")
+            if "возрастные ограничения" in error_msg.lower() or "блокирует" in error_msg.lower():
+                await interaction.followup.send("❌ YouTube временно блокирует запросы. Попробуйте другой трек или подождите.")
             else:
                 await interaction.followup.send(f"❌ Ошибка: {error_msg[:100]}")
 
