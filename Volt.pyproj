@@ -32,6 +32,7 @@
     <Compile Include="cogs\sync.py" />
     <Compile Include="cogs\voice_manager.py" />
     <Compile Include="cogs\__init__.py" />
+    <Compile Include="cookies_fix.py" />
     <Compile Include="core\bot.py" />
     <Compile Include="core\config.py" />
     <Compile Include="core\database.py" />
@@ -39,9 +40,11 @@
     <Compile Include="core\permissions.py" />
     <Compile Include="core\__init__.py" />
     <Compile Include="create_correct_env.py" />
+    <Compile Include="env.py" />
+    <Compile Include="get_vk_token.py" />
     <Compile Include="main.py" />
-    <Compile Include="remove_bom.py" />
     <Compile Include="test_bot.py" />
+    <Compile Include="test_vk_simple.py" />
     <Compile Include="utils\helpers.py" />
     <Compile Include="utils\music_classes.py" />
     <Compile Include="utils\__init__.py" />
