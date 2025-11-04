@@ -16,6 +16,51 @@ from core.logger import logger
 # Загрузка переменных окружения
 load_dotenv()
 
+# Проверка и настройка аудио для Replit
+def setup_audio():
+    """Настройка аудио для работы в Replit"""
+    try:
+        import discord
+        
+        # Проверяем загружен ли opus
+        if not discord.opus.is_loaded():
+            try:
+                # Пробуем разные пути к opus
+                opus_paths = [
+                    '/usr/lib/x86_64-linux-gnu/libopus.so.0',
+                    '/usr/lib/libopus.so.0',
+                    'libopus.so.0',
+                    'opus'
+                ]
+                
+                for path in opus_paths:
+                    try:
+                        discord.opus.load_opus(path)
+                        if discord.opus.is_loaded():
+                            logger.success(f"Opus загружен: {path}", "🔊")
+                            break
+                    except:
+                        continue
+                
+                if not discord.opus.is_loaded():
+                    logger.warning("Opus не загружен, возможны проблемы с аудио", "⚠️")
+            except Exception as e:
+                logger.warning(f"Не удалось загрузить opus: {e}", "⚠️")
+        
+        # Проверяем наличие ffmpeg
+        try:
+            import subprocess
+            result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
+            if result.returncode == 0:
+                logger.success("FFmpeg доступен", "🎵")
+            else:
+                logger.warning("FFmpeg не доступен", "⚠️")
+        except:
+            logger.warning("FFmpeg не установлен", "⚠️")
+            
+    except ImportError as e:
+        logger.error(f"Ошибка импорта: {e}", "❌")
+
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/health' or self.path == '/':
@@ -45,6 +90,9 @@ def start_http_server():
 async def main():
     logger.success("Запуск Discord Music Bot...", "🎵")
     logger.info("=" * 50)
+    
+    # Настраиваем аудио
+    setup_audio()
     
     # Запускаем HTTP сервер
     start_http_server()
