@@ -40,6 +40,7 @@
     <Compile Include="core\permissions.py" />
     <Compile Include="core\__init__.py" />
     <Compile Include="create_correct_env.py" />
+    <Compile Include="emergency_fix.py" />
     <Compile Include="env.py" />
     <Compile Include="get_vk_token.py" />
     <Compile Include="main.py" />
@@ -57,7 +58,9 @@
     <Folder Include="utils\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="data\music_bot.db" />
+    <Content Include=".env" />
+    <Content Include="nixpacks.toml" />
+    <Content Include="requirements.txt" />
     <Content Include="requirments.txt" />
     <Content Include="runtime.txt" />
   </ItemGroup>
